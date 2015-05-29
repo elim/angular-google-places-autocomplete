@@ -36,6 +36,7 @@ angular.module('google.places', [])
                     model: '=ngModel',
                     options: '=?',
                     forceSelection: '=?',
+                    fallbackTextSearch: '=?',
                     customPlaces: '=?'
                 },
                 controller: ['$scope', function ($scope) {}],
@@ -161,7 +162,9 @@ angular.module('google.places', [])
                         prediction = $scope.predictions[$scope.selected];
                         if (!prediction) return;
 
-                        if (prediction.is_custom) {
+                        if (prediction.is_text_search) {
+                            textSearch();
+                        } else if (prediction.is_custom) {
                             $scope.model = prediction.place;
                             $scope.$emit('g-places-autocomplete:select', prediction.place);
                         } else {
@@ -178,6 +181,25 @@ angular.module('google.places', [])
                         clearPredictions();
                     }
 
+                    function textSearch() {
+                        var query;
+
+                        query = $scope.model;
+                        if (!query) return;
+
+                        placesService.textSearch({ query: query }, function (results, status) {
+                            var place;
+
+                            if (status == google.maps.places.PlacesServiceStatus.OK) {
+                                place = results[0];
+                                $scope.$apply(function () {
+                                    $scope.model = place;
+                                    $scope.$emit('g-places-autocomplete:select', place);
+                                });
+                            }
+                        });
+                    }
+
                     function parse(viewValue) {
                         var request;
 
@@ -189,6 +211,7 @@ angular.module('google.places', [])
                         autocompleteService.getPlacePredictions(request, function (predictions, status) {
                             $scope.$apply(function () {
                                 var customPlacePredictions;
+                                var throwTextSearch;
 
                                 clearPredictions();
 
@@ -203,6 +226,11 @@ angular.module('google.places', [])
 
                                 if ($scope.predictions.length > 5) {
                                     $scope.predictions.length = 5;  // trim predictions down to size
+                                }
+
+                                if ($scope.fallbackTextSearch) {
+                                    throwTextSearch = getThrowTextSearchItem();
+                                    $scope.predictions.push.apply($scope.predictions, throwTextSearch);
                                 }
                             });
                         });
@@ -253,6 +281,20 @@ angular.module('google.places', [])
                         }
 
                         return predictions;
+                    }
+
+                    function getThrowTextSearchItem() {
+                        return [
+                            {
+                                is_text_search: true,
+                                is_custom: true,
+                                custom_prediction_label: 'そのまま検索する',  // required by https://developers.google.com/maps/terms § 10.1.1 (d)
+                                description: undefined,
+                                place: undefined,
+                                matched_substrings: [],
+                                terms: []
+                            }
+                        ];
                     }
 
                     function getCustomPlaceMatches(query, place) {
