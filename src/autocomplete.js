@@ -306,7 +306,7 @@ angular.module('google.places', [])
                     function indexOf(array, item) {
                         var i, length;
 
-                        if (array == null) return -1;
+                        if (array === null) return -1;
 
                         length = array.length;
                         for (i = 0; i < length; i++) {
