@@ -132,7 +132,7 @@ angular.module('google.places', [])
                                 var phase = $scope.$root.$$phase;
                                 var fn = function() {
                                     $scope.model = '';
-                                }
+                                };
                                 if(phase == '$apply' || phase == '$digest') {
                                     fn();
                                 } else {
@@ -320,10 +320,10 @@ angular.module('google.places', [])
                     }
 
                     function toLower(string) {
-                        return (string == null) ? "" : string.toLowerCase();
+                        return (string === null) ? "" : string.toLowerCase();
                     }
                 }
-            }
+            };
         }
     ])
 
@@ -357,7 +357,7 @@ angular.module('google.places', [])
                     $scope.$apply(function () {
                         $scope.position = getDrawerPosition($scope.input);
                     });
-                }
+                };
 
                 $scope.isOpen = function () {
                     return $scope.predictions.length > 0;
@@ -395,7 +395,7 @@ angular.module('google.places', [])
                     };
                 }
             }
-        }
+        };
     }])
 
     .directive('gPlacesAutocompletePrediction', [function () {
@@ -414,7 +414,7 @@ angular.module('google.places', [])
                 query:'='
             },
             template: TEMPLATE.join('')
-        }
+        };
     }])
 
     .filter('highlightMatched', ['$sce', function ($sce) {
@@ -430,7 +430,7 @@ angular.module('google.places', [])
             }
 
             return $sce.trustAsHtml('<span class="pac-matched">' + matchedPortion + '</span>' + unmatchedPortion);
-        }
+        };
     }])
 
     .filter('unmatchedTermsOnly', [function () {
@@ -445,13 +445,13 @@ angular.module('google.places', [])
             }
 
             return filtered;
-        }
+        };
     }])
 
     .filter('trailingComma', [function () {
         return function (input, condition) {
             return (condition) ? input + ',' : input;
-        }
+        };
     }]);
 
 
