@@ -26,8 +26,8 @@ angular.module('google.places', [])
    * <input type="text" g-places-autocomplete ng-model="myScopeVar" />
    */
   .directive('gPlacesAutocomplete',
-        [ '$parse', '$compile', '$timeout', '$document', 'googlePlacesApi',
-        function ($parse, $compile, $timeout, $document, google) {
+        [ '$parse', '$compile', '$timeout', '$document', '$q', 'googlePlacesApi',
+        function ($parse, $compile, $timeout, $document, $q, google) {
 
             return {
                 restrict: 'A',
@@ -36,7 +36,8 @@ angular.module('google.places', [])
                     model: '=ngModel',
                     options: '=?',
                     forceSelection: '=?',
-                    customPlaces: '=?'
+                    customPlaces: '=?',
+                    customPlacesFunc: '=?'
                 },
                 controller: ['$scope', function ($scope) {}],
                 link: function ($scope, element, attrs, controller) {
@@ -187,25 +188,25 @@ angular.module('google.places', [])
 
                         $scope.query = viewValue;
 
-                        request = angular.extend({ input: viewValue }, $scope.options);
-                        autocompleteService.getPlacePredictions(request, function (predictions, status) {
-                            $scope.$apply(function () {
-                                var customPlacePredictions;
+                        getCustomPlacePredictions($scope.query)
+                        .then(function(customPlacePredictions) {
 
-                                clearPredictions();
+                            request = angular.extend({ input: viewValue }, $scope.options);
+                            autocompleteService.getPlacePredictions(request, function (predictions, status) {
+                                $scope.$$phase || $scope.$apply(function () {
 
-                                if ($scope.customPlaces) {
-                                    customPlacePredictions = getCustomPlacePredictions($scope.query);
+                                    clearPredictions();
+
                                     $scope.predictions.push.apply($scope.predictions, customPlacePredictions);
-                                }
 
-                                if (status == google.maps.places.PlacesServiceStatus.OK) {
-                                    $scope.predictions.push.apply($scope.predictions, predictions);
-                                }
+                                    if (status == google.maps.places.PlacesServiceStatus.OK) {
+                                        $scope.predictions.push.apply($scope.predictions, predictions);
+                                    }
 
-                                if ($scope.predictions.length > 5) {
-                                    $scope.predictions.length = 5;  // trim predictions down to size
-                                }
+                                    if ($scope.predictions.length > 5) {
+                                        $scope.predictions.length = 5;  // trim predictions down to size
+                                    }
+                                });
                             });
                         });
 
@@ -239,26 +240,45 @@ angular.module('google.places', [])
                     }
 
                     function getCustomPlacePredictions(query) {
-                        var predictions = [],
-                            place, match, i;
+                        var deferred = $q.defer();
+                        var matches;
 
-                        for (i = 0; i < $scope.customPlaces.length; i++) {
-                            place = $scope.customPlaces[i];
-
-                            match = getCustomPlaceMatches(query, place);
-                            if (match.matched_substrings.length > 0) {
-                                predictions.push({
-                                    is_custom: true,
-                                    custom_prediction_label: place.custom_prediction_label || '(Custom Non-Google Result)',  // required by https://developers.google.com/maps/terms § 10.1.1 (d)
-                                    description: place.formatted_address,
-                                    place: place,
-                                    matched_substrings: match.matched_substrings,
-                                    terms: match.terms
-                                });
-                            }
+                        if ($scope.customPlacesFunc) {
+                            $scope.customPlacesFunc(query).then(function(places) {
+                                matches = selectMatches(places);
+                                deferred.resolve(matches);
+                            });
+                            return deferred.promise;
                         }
 
-                        return predictions;
+                        $timeout(function() {
+                            matches = selectMatches($scope.customPlacesFunc);
+                            deferred.resolve(matches);
+                        }, 0);
+
+                        return deferred.promise;
+
+                        function selectMatches(places) {
+                            var predictions = [],
+                            place, match, i;
+
+                            for (i = 0; i < places.length; i++) {
+                                place = places[i];
+
+                                match = getCustomPlaceMatches(query, place);
+                                if (match.matched_substrings.length > 0) {
+                                    predictions.push({
+                                        is_custom: true,
+                                        custom_prediction_label: place.custom_prediction_label || '(Custom Non-Google Result)',  // required by https://developers.google.com/maps/terms § 10.1.1 (d)
+                                        description: place.formatted_address,
+                                        place: place,
+                                        matched_substrings: match.matched_substrings,
+                                        terms: match.terms
+                                    });
+                                }
+                            }
+                            return predictions;
+                        }
                     }
 
                     function getCustomPlaceMatches(query, place) {
