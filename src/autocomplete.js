@@ -37,7 +37,8 @@ angular.module('google.places', [])
                     options: '=?',
                     forceSelection: '=?',
                     customPlaces: '=?',
-                    customPlacesFunc: '=?'
+                    customPlacesFunc: '=?',
+                    predictionsNum: '=?'
                 },
                 controller: ['$scope', function ($scope) {}],
                 link: function ($scope, element, attrs, controller) {
@@ -57,6 +58,7 @@ angular.module('google.places', [])
                         $scope.predictions = [];
                         $scope.input = element;
                         $scope.options = $scope.options || {};
+                        $scope.predictionsNum = $scope.predictionsNum || 5;
 
                         initAutocompleteDrawer();
                         initEvents();
@@ -183,6 +185,7 @@ angular.module('google.places', [])
                     function parse(viewValue) {
                         var request;
 
+
                         if (!(viewValue && isString(viewValue))) return viewValue;
 
                         $scope.query = viewValue;
@@ -202,8 +205,8 @@ angular.module('google.places', [])
                                         $scope.predictions.push.apply($scope.predictions, predictions);
                                     }
 
-                                    if ($scope.predictions.length > 5) {
-                                        $scope.predictions.length = 5;  // trim predictions down to size
+                                    if ($scope.predictions.length > $scope.predictionsNum) {
+                                        $scope.predictions.length = $scope.predictionsNum;  // trim predictions down to size
                                     }
                                 });
                             });
