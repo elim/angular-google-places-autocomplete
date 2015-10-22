@@ -58,7 +58,7 @@ angular.module('google.places', [])
                         $scope.predictions = [];
                         $scope.input = element;
                         $scope.options = $scope.options || {};
-                        $scope.predictionsNum = $scope.predictionsNum || 5;
+                        $scope.predictionsNum = parseInt($scope.predictionsNum, 10) || 5;
 
                         initAutocompleteDrawer();
                         initEvents();
